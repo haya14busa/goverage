@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -72,10 +71,9 @@ func run(coverprofile, pkg, covermode, cpu, parallel, timeout string, short, v b
 		return nil
 	}
 	coverpkg := strings.Join(pkgs, ",")
-	ctx := context.Background()
 	cpss := make([][]*cover.Profile, len(pkgs))
 	for i, pkg := range pkgs {
-		cps, err := coverage(ctx, coverpkg, pkg, covermode, cpu, parallel, timeout, short, v)
+		cps, err := coverage(coverpkg, pkg, covermode, cpu, parallel, timeout, short, v)
 		if err == nil {
 			cpss[i] = cps
 		}
@@ -105,7 +103,7 @@ func getPkgs(pkg string) ([]string, error) {
 }
 
 // coverage runs test for the given pkg and returns cover profile.
-func coverage(ctx context.Context, coverpkg, pkg, covermode, cpu, parallel, timeout string, short, v bool) ([]*cover.Profile, error) {
+func coverage(coverpkg, pkg, covermode, cpu, parallel, timeout string, short, v bool) ([]*cover.Profile, error) {
 	f, err := ioutil.TempFile("", "goverage")
 	if err != nil {
 		return nil, err
@@ -135,7 +133,7 @@ func coverage(ctx context.Context, coverpkg, pkg, covermode, cpu, parallel, time
 	if v {
 		args = append(args, "-v")
 	}
-	cmd := exec.CommandContext(ctx, "go", args...)
+	cmd := exec.Command("go", args...)
 	if v {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

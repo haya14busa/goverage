@@ -16,12 +16,12 @@ func TestRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Chdir("_testdata"); err != nil {
+	if err := os.Chdir("./example/root"); err != nil {
 		t.Fatal(err)
 	}
 	defer os.Chdir(wd)
 
-	if err := run(tmpfile.Name(), "./...", "count", "", "", "", false, false); err != nil {
+	if err := run(tmpfile.Name(), "./...", "count", "", "", "", false, true); err != nil {
 		t.Fatal(err)
 	}
 	b, err := ioutil.ReadFile(tmpfile.Name())
