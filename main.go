@@ -47,13 +47,13 @@ func usage() {
 func main() {
 	flag.Usage = usage
 	flag.Parse()
-	if err := run(os.Stdout, coverprofile, flag.Arg(0), covermode, cpu, parallel, timeout, short, v); err != nil {
+	if err := run(coverprofile, flag.Arg(0), covermode, cpu, parallel, timeout, short, v); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(w io.Writer, coverprofile, pkg, covermode, cpu, parallel, timeout string, short, v bool) error {
+func run(coverprofile, pkg, covermode, cpu, parallel, timeout string, short, v bool) error {
 	if coverprofile == "" {
 		usage()
 		return nil

@@ -1,0 +1,7 @@
+mode: set
+github.com/haya14busa/go-cover-multi-pkgs-example/sub/sub.go:3.23,5.2 1 0
+github.com/haya14busa/go-cover-multi-pkgs-example/sub/sub.go:7.24,9.2 1 1
+github.com/haya14busa/go-cover-multi-pkgs-example/sub/sub.go:11.30,13.2 1 1
+github.com/haya14busa/go-cover-multi-pkgs-example/vendor/github.com/haya14busa/vendorpkg/vendorpkg.go:3.22,5.2 1 0
+github.com/haya14busa/go-cover-multi-pkgs-example/root.go:8.24,10.2 1 1
+github.com/haya14busa/go-cover-multi-pkgs-example/root.go:12.17,15.2 2 1
