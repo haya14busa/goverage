@@ -9,7 +9,8 @@ dependencies:
     - rsync -avC "${HOME}/${CIRCLE_PROJECT_REPONAME}/" "${PROJECT_PATH}"
 
 test:
+  pwd: $PROJECT_PATH
   override:
-    - cd "${PROJECT_PATH}" && go test -v ./...
-    - cd "${PROJECT_PATH}" && go build -v && ./goverage -v -covermode count -coverprofile=coverage.out
-    - cd "${PROJECT_PATH}" && go tool cover -html=coverage.out -o $CIRCLE_ARTIFACTS/coverage.html
+    - go test -v ./...
+    - go build -v && ./goverage -v -covermode count -coverprofile=coverage.out
+    - go tool cover -html=coverage.out -o $CIRCLE_ARTIFACTS/coverage.html
