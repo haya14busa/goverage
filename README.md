@@ -32,5 +32,10 @@ Flags:
   -v    sent as v argument to go test
 ```
 
+```
+$ goverage -v -covermode count -coverprofile=coverage.out
+$ go tool cover -html=coverage.out
+```
+
 ### :bird: Author
 haya14busa (https://github.com/haya14busa)
