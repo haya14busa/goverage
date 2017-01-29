@@ -13,7 +13,7 @@ import (
 )
 
 const usageMessage = "" +
-	`Usage:	goverage [flags] -coverprofile=coverage.out package
+	`Usage:	goverage [flags] -coverprofile=coverage.out package...
 `
 
 var (
@@ -46,13 +46,13 @@ func usage() {
 func main() {
 	flag.Usage = usage
 	flag.Parse()
-	if err := run(coverprofile, flag.Arg(0), covermode, cpu, parallel, timeout, short, v); err != nil {
+	if err := run(coverprofile, flag.Args(), covermode, cpu, parallel, timeout, short, v); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(coverprofile, pkg, covermode, cpu, parallel, timeout string, short, v bool) error {
+func run(coverprofile string, args []string, covermode, cpu, parallel, timeout string, short, v bool) error {
 	if coverprofile == "" {
 		usage()
 		return nil
@@ -63,9 +63,13 @@ func run(coverprofile, pkg, covermode, cpu, parallel, timeout string, short, v b
 	}
 	defer file.Close()
 	// pkgs is packages to run tests and get coverage.
-	pkgs, err := getPkgs(pkg)
-	if err != nil {
-		return err
+	var pkgs []string
+	for _, pkg := range args {
+		ps, err := getPkgs(pkg)
+		if err != nil {
+			return err
+		}
+		pkgs = append(pkgs, ps...)
 	}
 	if len(pkgs) == 0 {
 		return nil
