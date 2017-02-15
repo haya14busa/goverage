@@ -27,7 +27,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&coverprofile, "coverprofile", "", "Write a coverage profile to the file after all tests have passed. (required)")
+	flag.StringVar(&coverprofile, "coverprofile", "coverage.out", "Write a coverage profile to the file after all tests have passed. (required)")
 	flag.StringVar(&covermode, "covermode", "", "sent as covermode argument to go test")
 	flag.StringVar(&cpu, "cpu", "", "sent as cpu argument to go test")
 	flag.StringVar(&parallel, "parallel", "", "sent as parallel argument to go test")
