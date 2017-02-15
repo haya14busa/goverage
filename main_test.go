@@ -21,7 +21,7 @@ func TestRun(t *testing.T) {
 	}
 	defer os.Chdir(wd)
 
-	if err := run(tmpfile.Name(), "./...", "count", "", "", "", false, true); err != nil {
+	if err := run(tmpfile.Name(), []string{"./..."}, "count", "", "", "", false, true); err != nil {
 		t.Fatal(err)
 	}
 	b, err := ioutil.ReadFile(tmpfile.Name())
