@@ -8,19 +8,19 @@ The solution of https://github.com/golang/go/issues/6909 with one binary.
 ## Installation
 
 ```
-go get github.com/haya14busa/goverage
+go get -u github.com/haya14busa/goverage
 ```
 
 ## Usage
 
 ```
-Usage:  goverage [flags] -coverprofile=coverage.out package
+Usage:  goverage [flags] -coverprofile=coverage.out packages
 
 Flags:
   -covermode string
         sent as covermode argument to go test
   -coverprofile string
-        Write a coverage profile to the file after all tests have passed. (required)
+        Write a coverage profile to the file after all tests have passed
   -cpu string
         sent as cpu argument to go test
   -parallel string
@@ -33,7 +33,7 @@ Flags:
 ```
 
 ```
-$ goverage -v -covermode count -coverprofile=coverage.out
+$ goverage -v -coverprofile=coverage.out ./...
 $ go tool cover -html=coverage.out
 ```
 
