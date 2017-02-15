@@ -72,7 +72,7 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 		pkgs = append(pkgs, ps...)
 	}
 	if len(pkgs) == 0 {
-		return nil
+		pkgs = []string{"."}
 	}
 	coverpkg := strings.Join(pkgs, ",")
 	cpss := make([][]*cover.Profile, len(pkgs))
