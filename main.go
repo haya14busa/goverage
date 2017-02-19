@@ -81,15 +81,44 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 		pkgs = []string{"."}
 	}
 	coverpkg := strings.Join(pkgs, ",")
+	optionalArgs := buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout, short, v)
 	cpss := make([][]*cover.Profile, len(pkgs))
 	for i, pkg := range pkgs {
-		cps, err := coverage(coverpkg, pkg, covermode, cpu, parallel, timeout, short, v)
+		cps, err := coverage(pkg, optionalArgs, v)
 		if err == nil {
 			cpss[i] = cps
 		}
 	}
 	dumpcp(file, mergeProfiles(cpss))
 	return nil
+}
+
+// buildOptionalTestArgs returns common optional args for go test regardless
+// target packages. coverpkg must not be empty.
+func buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout string, short, v bool) []string {
+	args := []string{"-coverpkg", coverpkg}
+	if covermode != "" {
+		args = append(args, "-covermode", covermode)
+	}
+	if cpu != "" {
+		args = append(args, "-cpu", cpu)
+	}
+	if parallel != "" {
+		args = append(args, "-parallel", parallel)
+	}
+	if timeout != "" {
+		args = append(args, "-timeout", timeout)
+	}
+	if short {
+		args = append(args, "-short")
+	}
+	if v {
+		args = append(args, "-v")
+	}
+	if race {
+		args = append(args, "-race")
+	}
+	return args
 }
 
 // getPkgs returns packages for mesuring coverage. Returned packages doesn't
@@ -113,39 +142,14 @@ func getPkgs(pkg string) ([]string, error) {
 }
 
 // coverage runs test for the given pkg and returns cover profile.
-func coverage(coverpkg, pkg, covermode, cpu, parallel, timeout string, short, v bool) ([]*cover.Profile, error) {
+func coverage(pkg string, optionalArgs []string, v bool) ([]*cover.Profile, error) {
 	f, err := ioutil.TempFile("", "goverage")
 	if err != nil {
 		return nil, err
 	}
 	f.Close()
 	defer os.Remove(f.Name())
-	args := []string{
-		"test", pkg,
-		"-coverpkg", coverpkg,
-		"-coverprofile", f.Name(),
-	}
-	if covermode != "" {
-		args = append(args, "-covermode", covermode)
-	}
-	if cpu != "" {
-		args = append(args, "-cpu", cpu)
-	}
-	if parallel != "" {
-		args = append(args, "-parallel", parallel)
-	}
-	if timeout != "" {
-		args = append(args, "-timeout", timeout)
-	}
-	if short {
-		args = append(args, "-short")
-	}
-	if v {
-		args = append(args, "-v")
-	}
-	if race {
-		args = append(args, "-race")
-	}
+	args := append([]string{"test", pkg, "-coverprofile", f.Name()}, optionalArgs...)
 	cmd := exec.Command("go", args...)
 	if v {
 		cmd.Stdout = os.Stdout
