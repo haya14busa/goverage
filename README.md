@@ -25,6 +25,8 @@ Flags:
         sent as cpu argument to go test
   -parallel string
         sent as parallel argument to go test
+  -race
+        enable data race detection
   -short
         sent as short argument to go test
   -timeout string

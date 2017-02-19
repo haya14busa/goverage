@@ -24,6 +24,7 @@ var (
 	timeout      string
 	short        bool
 	v            bool
+	race         bool
 )
 
 func init() {
@@ -34,6 +35,7 @@ func init() {
 	flag.StringVar(&timeout, "timeout", "", "sent as timeout argument to go test")
 	flag.BoolVar(&short, "short", false, "sent as short argument to go test")
 	flag.BoolVar(&v, "v", false, "sent as v argument to go test")
+	flag.BoolVar(&race, "race", false, "enable data race detection")
 }
 
 func usage() {
@@ -57,6 +59,10 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 		usage()
 		return nil
 	}
+	if race && covermode != "" && covermode != "atomic" {
+		return fmt.Errorf("cannot use race flag and covermode=%s. See more detail on golang/go#12118.", covermode)
+	}
+
 	file, err := os.Create(coverprofile)
 	if err != nil {
 		return err
@@ -136,6 +142,9 @@ func coverage(coverpkg, pkg, covermode, cpu, parallel, timeout string, short, v 
 	}
 	if v {
 		args = append(args, "-v")
+	}
+	if race {
+		args = append(args, "-race")
 	}
 	cmd := exec.Command("go", args...)
 	if v {
