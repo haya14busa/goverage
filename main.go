@@ -101,7 +101,7 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 	cpss := make([][]*cover.Profile, len(pkgs))
 	hasFailedTest := false
 	for i, pkg := range pkgs {
-		cps, err, success := coverage(pkg, optionalArgs, v)
+		cps, success, err := coverage(pkg, optionalArgs, v)
 		if err != nil {
 			return err
 		}
@@ -171,10 +171,10 @@ func getPkgs(pkg string) ([]string, error) {
 // success indicates "go test" succeeded or not. coverage may return profiles
 // even when success=false. When "go test" fails, coverage outputs "go test"
 // result to stdout even when verbose=false.
-func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Profile, err error, success bool) {
+func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Profile, success bool, err error) {
 	coverprofile, err := tmpProfileName()
 	if err != nil {
-		return nil, err, false
+		return nil, false, err
 	}
 	// Remove coverprofile created by "go test".
 	defer os.Remove(coverprofile)
@@ -192,13 +192,13 @@ func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Pro
 		// "go test" can creates coverprofile even when "go test" failes, so do not
 		// return error here if coverprofile is created.
 		if !isExist(coverprofile) {
-			return nil, fmt.Errorf("failed to run 'go test %v': %v", pkg, err), false
+			return nil, false, fmt.Errorf("failed to run 'go test %v': %v", pkg, err)
 		}
 	} else {
 		success = true
 	}
 	profiles, err = cover.ParseProfiles(coverprofile)
-	return profiles, err, success
+	return profiles, success, err
 }
 
 func tmpProfileName() (string, error) {
