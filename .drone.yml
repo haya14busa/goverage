@@ -5,8 +5,8 @@ build:
   test:
     image: golang
     commands:
-      - go get -d -v -t ./...
-      - go test -v ./...
+      - go get -d -v -t .
+      - go test -v .
   lint:
     image: golang
     environment:
