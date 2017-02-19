@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -45,12 +46,27 @@ func usage() {
 	os.Exit(2)
 }
 
+type ExitError struct {
+	Msg  string
+	Code int
+}
+
+func (e *ExitError) Error() string {
+	return e.Msg
+}
+
 func main() {
 	flag.Usage = usage
 	flag.Parse()
 	if err := run(coverprofile, flag.Args(), covermode, cpu, parallel, timeout, short, v); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		code := 1
+		if err, ok := err.(*ExitError); ok {
+			code = err.Code
+		}
+		if err.Error() != "" {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		os.Exit(code)
 	}
 }
 
@@ -83,13 +99,23 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 	coverpkg := strings.Join(pkgs, ",")
 	optionalArgs := buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout, short, v)
 	cpss := make([][]*cover.Profile, len(pkgs))
+	hasFailedTest := false
 	for i, pkg := range pkgs {
-		cps, err := coverage(pkg, optionalArgs, v)
-		if err == nil {
+		cps, err, success := coverage(pkg, optionalArgs, v)
+		if err != nil {
+			return err
+		}
+		if !success {
+			hasFailedTest = true
+		}
+		if cps != nil {
 			cpss[i] = cps
 		}
 	}
 	dumpcp(file, mergeProfiles(cpss))
+	if hasFailedTest {
+		return &ExitError{Code: 1}
+	}
 	return nil
 }
 
@@ -142,23 +168,56 @@ func getPkgs(pkg string) ([]string, error) {
 }
 
 // coverage runs test for the given pkg and returns cover profile.
-func coverage(pkg string, optionalArgs []string, v bool) ([]*cover.Profile, error) {
-	f, err := ioutil.TempFile("", "goverage")
+// success indicates "go test" succeeded or not. coverage may return profiles
+// even when success=false. When "go test" fails, coverage outputs "go test"
+// result to stdout even when verbose=false.
+func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Profile, err error, success bool) {
+	coverprofile, err := tmpProfileName()
 	if err != nil {
-		return nil, err
+		return nil, err, false
 	}
-	f.Close()
-	defer os.Remove(f.Name())
-	args := append([]string{"test", pkg, "-coverprofile", f.Name()}, optionalArgs...)
+	// Remove coverprofile created by "go test".
+	defer os.Remove(coverprofile)
+	args := append([]string{"test", pkg, "-coverprofile", coverprofile}, optArgs...)
 	cmd := exec.Command("go", args...)
-	if v {
+	stdout := new(bytes.Buffer)
+	if verbose {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+	} else {
+		cmd.Stdout = stdout
 	}
 	if err := cmd.Run(); err != nil {
-		return nil, err
+		fmt.Fprint(os.Stdout, stdout.String())
+		// "go test" can creates coverprofile even when "go test" failes, so do not
+		// return error here if coverprofile is created.
+		if !isExist(coverprofile) {
+			return nil, fmt.Errorf("failed to run 'go test %v': %v", pkg, err), false
+		}
+	} else {
+		success = true
 	}
-	return cover.ParseProfiles(f.Name())
+	profiles, err = cover.ParseProfiles(coverprofile)
+	return profiles, err, success
+}
+
+func tmpProfileName() (string, error) {
+	f, err := ioutil.TempFile("", "goverage")
+	if err != nil {
+		return "", err
+	}
+	if err := f.Close(); err != nil {
+		return "", err
+	}
+	if err := os.Remove(f.Name()); err != nil {
+		return "", err
+	}
+	return f.Name(), nil
+}
+
+func isExist(filename string) bool {
+	_, err := os.Stat(filename)
+	return err == nil
 }
 
 // mergeProfiles merges cover profiles. It assumes target packages of each

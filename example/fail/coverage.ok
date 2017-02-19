@@ -1,0 +1,4 @@
+mode: set
+github.com/haya14busa/goverage/example/fail/fail.go:7.11,10.2 2 1
+github.com/haya14busa/goverage/example/fail/sub/sub.go:3.11,5.2 1 1
+github.com/haya14busa/goverage/example/fail/sub/sub.go:7.24,9.2 1 1
