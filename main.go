@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -103,7 +104,9 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 	for i, pkg := range pkgs {
 		cps, success, err := coverage(pkg, optionalArgs, v)
 		if err != nil {
-			return err
+			// Do not return err here. It could be just tests are not found for the package.
+			log.Printf("got error for package %q: %v", pkg, v)
+			continue
 		}
 		if !success {
 			hasFailedTest = true
