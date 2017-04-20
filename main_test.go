@@ -21,7 +21,7 @@ func TestRun(t *testing.T) {
 	}
 	defer os.Chdir(wd)
 
-	if err := run(tmpfile.Name(), []string{"./..."}, "count", "", "", "", false, true); err != nil {
+	if err := run(tmpfile.Name(), []string{"./..."}, "count", "", "", "", "", false, true); err != nil {
 		t.Fatal(err)
 	}
 	b, err := ioutil.ReadFile(tmpfile.Name())
@@ -53,7 +53,7 @@ func TestRun_with_test_failed(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.Chdir(wd)
-	err = run(tmpfile.Name(), []string{"./..."}, "", "", "", "", false, true)
+	err = run(tmpfile.Name(), []string{"./..."}, "", "", "", "", "", false, true)
 	if err, ok := err.(*ExitError); !ok || err.Code != 1 {
 		t.Fatalf("unexpected error: %v", err)
 	}
