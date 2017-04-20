@@ -89,17 +89,36 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout, 
 	defer file.Close()
 	// pkgs is packages to run tests and get coverage.
 	var pkgs []string
+	var coverpkgs []string
 	for _, pkg := range args {
 		ps, err := getPkgs(pkg)
 		if err != nil {
 			return err
 		}
 		pkgs = append(pkgs, ps...)
+
 	}
 	if len(pkgs) == 0 {
 		pkgs = []string{"."}
+
 	}
-	coverpkg := strings.Join(pkgs, ",")
+
+	for _, pkg := range pkgs {
+		var cmd *exec.Cmd
+
+		if tags != "" {
+			cmd = exec.Command("go", "build", "-tags", tags, pkg)
+		} else {
+			cmd = exec.Command("go", "build", pkg)
+		}
+
+		if err := cmd.Run(); err != nil {
+			continue
+		}
+		coverpkgs = append(coverpkgs, pkg)
+	}
+
+	coverpkg := strings.Join(coverpkgs, ",")
 	optionalArgs := buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout, tags, short, v)
 	cpss := make([][]*cover.Profile, len(pkgs))
 	hasFailedTest := false
@@ -195,6 +214,7 @@ func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Pro
 	} else {
 		cmd.Stdout = stdout
 	}
+
 	if err := cmd.Run(); err != nil {
 		fmt.Fprint(os.Stdout, stdout.String())
 		// "go test" can creates coverprofile even when "go test" failes, so do not
