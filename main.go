@@ -103,13 +103,13 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 	hasFailedTest := false
 	for i, pkg := range pkgs {
 		cps, success, err := coverage(pkg, optionalArgs, v)
+		if !success {
+			hasFailedTest = true
+		}
 		if err != nil {
 			// Do not return err here. It could be just tests are not found for the package.
 			log.Printf("got error for package %q: %v", pkg, v)
 			continue
-		}
-		if !success {
-			hasFailedTest = true
 		}
 		if cps != nil {
 			cpss[i] = cps
