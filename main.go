@@ -184,14 +184,17 @@ func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Pro
 	args := append([]string{"test", pkg, "-coverprofile", coverprofile}, optArgs...)
 	cmd := exec.Command("go", args...)
 	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
 	if verbose {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 	} else {
 		cmd.Stdout = stdout
+		cmd.Stderr = stderr
 	}
 	if err := cmd.Run(); err != nil {
 		fmt.Fprint(os.Stdout, stdout.String())
+		fmt.Fprint(os.Stderr, stderr.String())
 		// "go test" can creates coverprofile even when "go test" failes, so do not
 		// return error here if coverprofile is created.
 		if !isExist(coverprofile) {
