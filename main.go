@@ -201,6 +201,10 @@ func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Pro
 			return nil, false, fmt.Errorf("failed to run 'go test %v': %v", pkg, err)
 		}
 	} else {
+		if !isExist(coverprofile) {
+			// There are no test and coverprofile is not created.
+			return nil, true, nil
+		}
 		success = true
 	}
 	profiles, err = cover.ParseProfiles(coverprofile)
