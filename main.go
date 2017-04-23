@@ -108,7 +108,7 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 		}
 		if err != nil {
 			// Do not return err here. It could be just tests are not found for the package.
-			log.Printf("got error for package %q: %s", pkg, err)
+			log.Printf("got error for package %q: %v", pkg, err)
 			continue
 		}
 		if cps != nil {
