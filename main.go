@@ -107,14 +107,14 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout, 
 		var cmd *exec.Cmd
 
 		if tags != "" {
+			// Check if the code is buildable with the supplied tags, otherwise
+			// the package cannot be covered by other packages either.
 			cmd = exec.Command("go", "build", "-o", "/dev/null", "-tags", tags, pkg)
-		} else {
-			cmd = exec.Command("go", "build", "-o", "/dev/null", pkg)
+			if err := cmd.Run(); err != nil {
+				continue
+			}
 		}
 
-		if err := cmd.Run(); err != nil {
-			continue
-		}
 		coverpkgs = append(coverpkgs, pkg)
 	}
 
