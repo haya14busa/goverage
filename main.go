@@ -107,9 +107,9 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout, 
 		var cmd *exec.Cmd
 
 		if tags != "" {
-			cmd = exec.Command("go", "build", "-tags", tags, pkg)
+			cmd = exec.Command("go", "build", "-o", "/dev/null", "-tags", tags, pkg)
 		} else {
-			cmd = exec.Command("go", "build", pkg)
+			cmd = exec.Command("go", "build", "-o", "/dev/null", pkg)
 		}
 
 		if err := cmd.Run(); err != nil {
