@@ -3,7 +3,7 @@
 #
 build:
   test:
-    image: golang
+    image: golang:1.9
     commands:
       - go get -d -v -t .
       - go test -v .
@@ -14,7 +14,7 @@ build:
     commands:
       - go get github.com/haya14busa/reviewdog/cmd/reviewdog
       - go get github.com/golang/lint/golint
-      - go get honnef.co/go/unused/cmd/unused
+      - go get honnef.co/go/tools/cmd/unused
       - |
         go tool vet -all -shadowstrict . | reviewdog -efm="%f:%l: %m" -ci=droneio
       - |

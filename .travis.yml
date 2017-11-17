@@ -1,0 +1,17 @@
+language: go
+
+go:
+  - 1.9.x
+  - 1.8.x
+  - master
+
+install:
+  - go get -d -v -t ./...
+  - go install
+
+script:
+  - go test -v -race .
+  - goverage -coverprofile=coverage.txt .
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
