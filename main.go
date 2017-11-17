@@ -233,35 +233,29 @@ func isExist(filename string) bool {
 // mergeProfiles merges cover profiles. It assumes target packages of each
 // cover profile are same and sorted.
 func mergeProfiles(cpss [][]*cover.Profile) []*cover.Profile {
-	// skip head empty profiles ([no test files])
-	for i, cps := range cpss {
-		if len(cps) == 0 {
-			continue // [no test files]
-		}
-		cpss = cpss[i:]
-		break
-	}
-	if len(cpss) == 0 {
-		return nil // empty
-	} else if len(cpss) == 1 {
-		return cpss[0] // only one profile
-	}
-	result, rest := cpss[0], cpss[1:]
-	for i, profile := range result {
-		for _, cps := range rest {
-			if len(cps) == 0 {
-				continue // [no test files]
+	// File name to profile.
+	profiles := map[string]*cover.Profile{}
+	for _, ps := range cpss {
+		for _, p := range ps {
+			if _, ok := profiles[p.FileName]; !ok {
+				// Insert profile.
+				profiles[p.FileName] = p
+				continue
 			}
-			cp := cps[i]
-			for j, block := range cp.Blocks {
-				switch profile.Mode {
+			// Merge blocks.
+			for i, block := range p.Blocks {
+				switch p.Mode {
 				case "set":
-					profile.Blocks[j].Count |= block.Count
+					profiles[p.FileName].Blocks[i].Count |= block.Count
 				case "count", "atomic":
-					profile.Blocks[j].Count += block.Count
+					profiles[p.FileName].Blocks[i].Count += block.Count
 				}
 			}
 		}
+	}
+	result := make([]*cover.Profile, 0, len(profiles))
+	for _, p := range profiles {
+		result = append(result, p)
 	}
 	return result
 }
