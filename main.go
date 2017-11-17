@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"golang.org/x/tools/cover"
@@ -257,6 +258,9 @@ func mergeProfiles(cpss [][]*cover.Profile) []*cover.Profile {
 	for _, p := range profiles {
 		result = append(result, p)
 	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].FileName < result[j].FileName
+	})
 	return result
 }
 
