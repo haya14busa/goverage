@@ -3,7 +3,7 @@
 #
 build:
   test:
-    image: golang
+    image: golang:1.9
     commands:
       - go get -d -v -t .
       - go test -v .
