@@ -7,6 +7,7 @@ go:
   - master
 
 install:
+  - go get -d -v -t ./...
   - go install
 
 script:
