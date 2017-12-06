@@ -25,6 +25,7 @@ var (
 	cpu          string
 	parallel     string
 	timeout      string
+	tags         string
 	short        bool
 	v            bool
 	x            bool
@@ -37,6 +38,7 @@ func init() {
 	flag.StringVar(&cpu, "cpu", "", "sent as cpu argument to go test")
 	flag.StringVar(&parallel, "parallel", "", "sent as parallel argument to go test")
 	flag.StringVar(&timeout, "timeout", "", "sent as timeout argument to go test")
+	flag.StringVar(&tags, "tags", "", "sent as the tags argument to test")
 	flag.BoolVar(&short, "short", false, "sent as short argument to go test")
 	flag.BoolVar(&v, "v", false, "sent as v argument to go test")
 	flag.BoolVar(&x, "x", false, "sent as x argument to go test")
@@ -62,7 +64,7 @@ func (e *ExitError) Error() string {
 func main() {
 	flag.Usage = usage
 	flag.Parse()
-	if err := run(coverprofile, flag.Args(), covermode, cpu, parallel, timeout, short, v); err != nil {
+	if err := run(coverprofile, flag.Args(), covermode, cpu, parallel, timeout, tags, short, v); err != nil {
 		code := 1
 		if err, ok := err.(*ExitError); ok {
 			code = err.Code
@@ -74,7 +76,7 @@ func main() {
 	}
 }
 
-func run(coverprofile string, args []string, covermode, cpu, parallel, timeout string, short, v bool) error {
+func run(coverprofile string, args []string, covermode, cpu, parallel, timeout, tags string, short, v bool) error {
 	if coverprofile == "" {
 		usage()
 		return nil
@@ -90,18 +92,37 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 	defer file.Close()
 	// pkgs is packages to run tests and get coverage.
 	var pkgs []string
+	var coverpkgs []string
 	for _, pkg := range args {
 		ps, err := getPkgs(pkg)
 		if err != nil {
 			return err
 		}
 		pkgs = append(pkgs, ps...)
+
 	}
 	if len(pkgs) == 0 {
 		pkgs = []string{"."}
+
 	}
-	coverpkg := strings.Join(pkgs, ",")
-	optionalArgs := buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout, short, v)
+
+	for _, pkg := range pkgs {
+		var cmd *exec.Cmd
+
+		if tags != "" {
+			// Check if the code is buildable with the supplied tags, otherwise
+			// the package cannot be covered by other packages either.
+			cmd = exec.Command("go", "build", "-o", "/dev/null", "-tags", tags, pkg)
+			if err := cmd.Run(); err != nil {
+				continue
+			}
+		}
+
+		coverpkgs = append(coverpkgs, pkg)
+	}
+
+	coverpkg := strings.Join(coverpkgs, ",")
+	optionalArgs := buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout, tags, short, v)
 	cpss := make([][]*cover.Profile, len(pkgs))
 	hasFailedTest := false
 	for i, pkg := range pkgs {
@@ -127,7 +148,7 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 
 // buildOptionalTestArgs returns common optional args for go test regardless
 // target packages. coverpkg must not be empty.
-func buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout string, short, v bool) []string {
+func buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout, tags string, short, v bool) []string {
 	args := []string{"-coverpkg", coverpkg}
 	if covermode != "" {
 		args = append(args, "-covermode", covermode)
@@ -140,6 +161,9 @@ func buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout string, s
 	}
 	if timeout != "" {
 		args = append(args, "-timeout", timeout)
+	}
+	if tags != "" {
+		args = append(args, "-tags", tags)
 	}
 	if short {
 		args = append(args, "-short")
@@ -198,6 +222,7 @@ func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Pro
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
 	}
+
 	if err := cmd.Run(); err != nil {
 		fmt.Fprint(os.Stdout, stdout.String())
 		fmt.Fprint(os.Stderr, stderr.String())
