@@ -27,6 +27,7 @@ var (
 	timeout      string
 	short        bool
 	v            bool
+	x            bool
 	race         bool
 )
 
@@ -38,6 +39,7 @@ func init() {
 	flag.StringVar(&timeout, "timeout", "", "sent as timeout argument to go test")
 	flag.BoolVar(&short, "short", false, "sent as short argument to go test")
 	flag.BoolVar(&v, "v", false, "sent as v argument to go test")
+	flag.BoolVar(&x, "x", false, "sent as x argument to go test")
 	flag.BoolVar(&race, "race", false, "enable data race detection")
 }
 
@@ -144,6 +146,9 @@ func buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout string, s
 	}
 	if v {
 		args = append(args, "-v")
+	}
+	if x {
+		args = append(args, "-x")
 	}
 	if race {
 		args = append(args, "-race")
