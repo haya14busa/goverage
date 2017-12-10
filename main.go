@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"sort"
 	"strings"
 
 	"golang.org/x/tools/cover"
@@ -102,10 +101,10 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 	}
 	coverpkg := strings.Join(pkgs, ",")
 	optionalArgs := buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout, short, v)
-	cpss := make([][]*cover.Profile, len(pkgs))
+	profiles := make([]string, 0, len(pkgs))
 	hasFailedTest := false
-	for i, pkg := range pkgs {
-		cps, success, err := coverage(pkg, optionalArgs, v)
+	for _, pkg := range pkgs {
+		coverprofile, success, err := coverage(pkg, optionalArgs, v)
 		if !success {
 			hasFailedTest = true
 		}
@@ -114,11 +113,16 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 			log.Printf("got error for package %q: %v", pkg, err)
 			continue
 		}
-		if cps != nil {
-			cpss[i] = cps
+		if coverprofile != "" {
+			defer os.Remove(coverprofile)
+			profiles = append(profiles, coverprofile)
 		}
 	}
-	dumpcp(file, mergeProfiles(cpss))
+	cp, err := mergeProfiles(profiles, covermode)
+	if err != nil {
+		return &ExitError{Code: 1, Msg: err.Error()}
+	}
+	dumpcp(file, cp)
 	if hasFailedTest {
 		return &ExitError{Code: 1}
 	}
@@ -180,13 +184,12 @@ func getPkgs(pkg string) ([]string, error) {
 // success indicates "go test" succeeded or not. coverage may return profiles
 // even when success=false. When "go test" fails, coverage outputs "go test"
 // result to stdout even when verbose=false.
-func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Profile, success bool, err error) {
-	coverprofile, err := tmpProfileName()
+// Caller is expected to remove returned coverprofile.
+func coverage(pkg string, optArgs []string, verbose bool) (coverprofile string, success bool, err error) {
+	coverprofile, err = tmpProfileName()
 	if err != nil {
-		return nil, false, err
+		return "", false, err
 	}
-	// Remove coverprofile created by "go test".
-	defer os.Remove(coverprofile)
 	args := append([]string{"test", pkg, "-coverprofile", coverprofile}, optArgs...)
 	cmd := exec.Command("go", args...)
 	stdout := new(bytes.Buffer)
@@ -204,17 +207,16 @@ func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Pro
 		// "go test" can creates coverprofile even when "go test" failes, so do not
 		// return error here if coverprofile is created.
 		if !isExist(coverprofile) {
-			return nil, false, fmt.Errorf("failed to run 'go test %v': %v", pkg, err)
+			return "", false, fmt.Errorf("failed to run 'go test %v': %v", pkg, err)
 		}
 	} else {
 		if !isExist(coverprofile) {
 			// There are no test and coverprofile is not created.
-			return nil, true, nil
+			return "", true, nil
 		}
 		success = true
 	}
-	profiles, err = cover.ParseProfiles(coverprofile)
-	return profiles, success, err
+	return coverprofile, success, err
 }
 
 func tmpProfileName() (string, error) {
@@ -236,37 +238,48 @@ func isExist(filename string) bool {
 	return err == nil
 }
 
-// mergeProfiles merges cover profiles. It assumes target packages of each
-// cover profile are same and sorted.
-func mergeProfiles(cpss [][]*cover.Profile) []*cover.Profile {
-	// File name to profile.
-	profiles := map[string]*cover.Profile{}
-	for _, ps := range cpss {
-		for _, p := range ps {
-			if _, ok := profiles[p.FileName]; !ok {
-				// Insert profile.
-				profiles[p.FileName] = p
-				continue
-			}
-			// Merge blocks.
-			for i, block := range p.Blocks {
-				switch p.Mode {
-				case "set":
-					profiles[p.FileName].Blocks[i].Count |= block.Count
-				case "count", "atomic":
-					profiles[p.FileName].Blocks[i].Count += block.Count
-				}
-			}
+func mergeProfiles(profiles []string, covermode string) ([]*cover.Profile, error) {
+	mergedProfile, err := ioutil.TempFile("", "goverage-merged-profile")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(mergedProfile.Name())
+	defer mergedProfile.Close()
+
+	if covermode == "" {
+		covermode = "set"
+	}
+
+	if _, err = fmt.Fprintf(mergedProfile, "mode: %s\n", covermode); err != nil {
+		return nil, err
+	}
+
+	expect := fmt.Sprintf("mode: %s\n", covermode)
+	for _, file := range profiles {
+		buf := make([]byte, len(expect))
+		r, err := os.Open(file)
+		if err != nil {
+			continue
+		}
+		defer r.Close()
+
+		n, err := io.ReadFull(r, buf)
+		if n == 0 {
+			continue
+		}
+		if err != nil || string(buf) != expect {
+			return nil, fmt.Errorf("error: test wrote malformed coverage profile: %s", buf)
+		}
+		_, err = io.Copy(mergedProfile, r)
+		if err != nil {
+			return nil, fmt.Errorf("error: saving coverage profile: %v", err)
 		}
 	}
-	result := make([]*cover.Profile, 0, len(profiles))
-	for _, p := range profiles {
-		result = append(result, p)
+
+	if err := mergedProfile.Close(); err != nil {
+		return nil, err
 	}
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].FileName < result[j].FileName
-	})
-	return result
+	return cover.ParseProfiles(mergedProfile.Name())
 }
 
 // dumpcp dumps cover profile result to io.Writer.
@@ -277,7 +290,6 @@ func dumpcp(w io.Writer, cps []*cover.Profile) {
 	fmt.Fprintf(w, "mode: %v\n", cps[0].Mode)
 	for _, cp := range cps {
 		for _, b := range cp.Blocks {
-			_ = b
 			// ref: golang.org/x/tools/cover
 			// name.go:line.column,line.column numberOfStatements count
 			const blockFmt = "%s:%d.%d,%d.%d %d %d\n"
