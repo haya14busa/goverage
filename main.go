@@ -29,6 +29,7 @@ var (
 	v            bool
 	x            bool
 	race         bool
+	gobinary     string
 )
 
 func init() {
@@ -41,6 +42,7 @@ func init() {
 	flag.BoolVar(&v, "v", false, "sent as v argument to go test")
 	flag.BoolVar(&x, "x", false, "sent as x argument to go test")
 	flag.BoolVar(&race, "race", false, "enable data race detection")
+	flag.StringVar(&gobinary, "go-binary", "go", "Use an alternative test runner such as 'richgo'")
 }
 
 func usage() {
@@ -188,7 +190,7 @@ func coverage(pkg string, optArgs []string, verbose bool) (profiles []*cover.Pro
 	// Remove coverprofile created by "go test".
 	defer os.Remove(coverprofile)
 	args := append([]string{"test", pkg, "-coverprofile", coverprofile}, optArgs...)
-	cmd := exec.Command("go", args...)
+	cmd := exec.Command(gobinary, args...)
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	if verbose {

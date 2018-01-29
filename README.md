@@ -23,6 +23,9 @@ Flags:
         Write a coverage profile to the file after all tests have passed
   -cpu string
         sent as cpu argument to go test
+  -go-binary
+        An alternative 'go' binary to run the tests, for example to use 'richgo' for
+        more human-friendly output.
   -parallel string
         sent as parallel argument to go test
   -race
