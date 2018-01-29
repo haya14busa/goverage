@@ -30,6 +30,7 @@ var (
 	x            bool
 	race         bool
 	gobinary     string
+	tags         string
 )
 
 func init() {
@@ -37,6 +38,7 @@ func init() {
 	flag.StringVar(&covermode, "covermode", "", "sent as covermode argument to go test")
 	flag.StringVar(&cpu, "cpu", "", "sent as cpu argument to go test")
 	flag.StringVar(&parallel, "parallel", "", "sent as parallel argument to go test")
+	flag.StringVar(&tags, "tags", "", "sent as tags argument to go test")
 	flag.StringVar(&timeout, "timeout", "", "sent as timeout argument to go test")
 	flag.BoolVar(&short, "short", false, "sent as short argument to go test")
 	flag.BoolVar(&v, "v", false, "sent as v argument to go test")
@@ -139,6 +141,9 @@ func buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout string, s
 	}
 	if parallel != "" {
 		args = append(args, "-parallel", parallel)
+	}
+	if tags != "" {
+		args = append(args, "-tags", tags)
 	}
 	if timeout != "" {
 		args = append(args, "-timeout", timeout)

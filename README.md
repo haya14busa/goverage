@@ -32,6 +32,8 @@ Flags:
         enable data race detection
   -short
         sent as short argument to go test
+  -tags string
+        sent as tags argument to go test
   -timeout string
         sent as timeout argument to go test
   -v    sent as v argument to go test
