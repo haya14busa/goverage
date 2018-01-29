@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"sort"
 	"strings"
+	"sync"
 
 	"golang.org/x/tools/cover"
 )
@@ -30,6 +31,7 @@ var (
 	x            bool
 	race         bool
 	gobinary     string
+	concurrency  int
 )
 
 func init() {
@@ -43,6 +45,7 @@ func init() {
 	flag.BoolVar(&x, "x", false, "sent as x argument to go test")
 	flag.BoolVar(&race, "race", false, "enable data race detection")
 	flag.StringVar(&gobinary, "go-binary", "go", "Use an alternative test runner such as 'richgo'")
+	flag.IntVar(&concurrency, "concurrency", 1, "allow parallel execution of test packages.")
 }
 
 func usage() {
@@ -81,6 +84,9 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 		usage()
 		return nil
 	}
+	if concurrency < 1 {
+		return fmt.Errorf( "invalid concurrency value '%d', value must be at least 1\n", concurrency)
+	}
 	if race && covermode != "" && covermode != "atomic" {
 		return fmt.Errorf("cannot use race flag and covermode=%s. See more detail on golang/go#12118.", covermode)
 	}
@@ -90,6 +96,7 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 		return err
 	}
 	defer file.Close()
+
 	// pkgs is packages to run tests and get coverage.
 	var pkgs []string
 	for _, pkg := range args {
@@ -106,20 +113,35 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 	optionalArgs := buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout, short, v)
 	cpss := make([][]*cover.Profile, len(pkgs))
 	hasFailedTest := false
+
+	m := new(sync.Mutex)
+	semaphore := make(chan int, concurrency)
+	wg := &sync.WaitGroup{}
+
 	for i, pkg := range pkgs {
-		cps, success, err := coverage(pkg, optionalArgs, v)
-		if !success {
-			hasFailedTest = true
-		}
-		if err != nil {
-			// Do not return err here. It could be just tests are not found for the package.
-			log.Printf("got error for package %q: %v", pkg, err)
-			continue
-		}
-		if cps != nil {
-			cpss[i] = cps
-		}
+		wg.Add(1)
+		go func(pkg string, i int) {
+			defer wg.Done()
+			defer m.Unlock()
+			semaphore <- 1
+			cps, success, err := coverage(pkg, optionalArgs, v)
+			<-semaphore
+			m.Lock()
+			if !success {
+				hasFailedTest = true
+			}
+			if err != nil {
+				// Do not return err here. It could be just tests are not found for the package.
+				log.Printf("got error for package %q: %v", pkg, err)
+				return
+			}
+			if cps != nil {
+				cpss[i] = cps
+			}
+		}(pkg, i)
 	}
+	wg.Wait()
+
 	dumpcp(file, mergeProfiles(cpss))
 	if hasFailedTest {
 		return &ExitError{Code: 1}

@@ -17,6 +17,8 @@ go get -u github.com/haya14busa/goverage
 Usage:  goverage [flags] -coverprofile=coverage.out packages
 
 Flags:
+  -concurrency int
+        allow the number of packages being processed at one time
   -covermode string
         sent as covermode argument to go test
   -coverprofile string
