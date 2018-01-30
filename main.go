@@ -85,7 +85,7 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 		return nil
 	}
 	if concurrency < 1 {
-		return fmt.Errorf( "invalid concurrency value '%d', value must be at least 1\n", concurrency)
+		return fmt.Errorf( "invalid concurrency value '%d', value must be at least 1", concurrency)
 	}
 	if race && covermode != "" && covermode != "atomic" {
 		return fmt.Errorf("cannot use race flag and covermode=%s. See more detail on golang/go#12118.", covermode)
