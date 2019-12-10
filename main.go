@@ -25,6 +25,7 @@ var (
 	cpu          string
 	parallel     string
 	timeout      string
+	tags         string
 	short        bool
 	v            bool
 	x            bool
@@ -38,6 +39,7 @@ func init() {
 	flag.StringVar(&cpu, "cpu", "", "sent as cpu argument to go test")
 	flag.StringVar(&parallel, "parallel", "", "sent as parallel argument to go test")
 	flag.StringVar(&timeout, "timeout", "", "sent as timeout argument to go test")
+	flag.StringVar(&tags, "tags", "", "sent as tags argument to go test")
 	flag.BoolVar(&short, "short", false, "sent as short argument to go test")
 	flag.BoolVar(&v, "v", false, "sent as v argument to go test")
 	flag.BoolVar(&x, "x", false, "sent as x argument to go test")
@@ -142,6 +144,9 @@ func buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout string, s
 	}
 	if timeout != "" {
 		args = append(args, "-timeout", timeout)
+	}
+	if tags != "" {
+		args = append(args, "-tags", tags)
 	}
 	if short {
 		args = append(args, "-short")
