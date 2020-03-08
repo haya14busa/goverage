@@ -30,6 +30,7 @@ var (
 	x            bool
 	race         bool
 	gobinary     string
+	failfast	 bool
 )
 
 func init() {
@@ -43,6 +44,7 @@ func init() {
 	flag.BoolVar(&x, "x", false, "sent as x argument to go test")
 	flag.BoolVar(&race, "race", false, "enable data race detection")
 	flag.StringVar(&gobinary, "go-binary", "go", "Use an alternative test runner such as 'richgo'")
+	flag.BoolVar(&failfast, "failfast", false, "Do not start new tests after the first test failure.")
 }
 
 func usage() {
@@ -64,7 +66,7 @@ func (e *ExitError) Error() string {
 func main() {
 	flag.Usage = usage
 	flag.Parse()
-	if err := run(coverprofile, flag.Args(), covermode, cpu, parallel, timeout, short, v); err != nil {
+	if err := run(coverprofile, flag.Args(), covermode, cpu, parallel, timeout, short, v, failfast); err != nil {
 		code := 1
 		if err, ok := err.(*ExitError); ok {
 			code = err.Code
@@ -76,7 +78,7 @@ func main() {
 	}
 }
 
-func run(coverprofile string, args []string, covermode, cpu, parallel, timeout string, short, v bool) error {
+func run(coverprofile string, args []string, covermode, cpu, parallel, timeout string, short, v bool, failfast bool) error {
 	if coverprofile == "" {
 		usage()
 		return nil
@@ -103,7 +105,7 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 		pkgs = []string{"."}
 	}
 	coverpkg := strings.Join(pkgs, ",")
-	optionalArgs := buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout, short, v)
+	optionalArgs := buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout, short, v, failfast)
 	cpss := make([][]*cover.Profile, len(pkgs))
 	hasFailedTest := false
 	for i, pkg := range pkgs {
@@ -129,7 +131,7 @@ func run(coverprofile string, args []string, covermode, cpu, parallel, timeout s
 
 // buildOptionalTestArgs returns common optional args for go test regardless
 // target packages. coverpkg must not be empty.
-func buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout string, short, v bool) []string {
+func buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout string, short, v bool, failfast bool) []string {
 	args := []string{"-coverpkg", coverpkg}
 	if covermode != "" {
 		args = append(args, "-covermode", covermode)
@@ -154,6 +156,9 @@ func buildOptionalTestArgs(coverpkg, covermode, cpu, parallel, timeout string, s
 	}
 	if race {
 		args = append(args, "-race")
+	}
+	if failfast {
+		args = append(args, "-failfast")
 	}
 	return args
 }
